@@ -1,0 +1,47 @@
+buildscript {
+	ext {
+		springBootVersion = '1.5.3.RELEASE'
+	}
+	repositories {
+	    mavenLocal()
+		mavenCentral()
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+}
+
+
+dependencies {
+	compile('org.springframework.boot:spring-boot-starter-integration')
+    compile("org.springframework.integration:spring-integration-feed")
+    compile("org.springframework.integration:spring-integration-file")
+    compile("org.springframework.integration:spring-integration-jms")
+    compile("org.springframework.boot:spring-boot-starter-activemq")
+    compile("org.apache.activemq:activemq-broker")
+    compile("org.apache.activemq:activemq-kahadb-store")
+    compile("com.fasterxml.jackson.core:jackson-databind")
+    compile("org.springframework.boot:spring-boot-starter-actuator")
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.projectlombok:lombok:1.16.16")
+ 
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+	compile("com.google.guava:guava:12.0")
+}
+
+task showMeCache {
+  doLast {
+    configurations.compile.each { println it }
+  }
+}

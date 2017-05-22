@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+    xmlns:file="http://www.springframework.org/schema/integration/file"
+    xmlns:feed="http://www.springframework.org/schema/integration/feed"
+    xmlns:jms="http://www.springframework.org/schema/integration/jms"
+    xsi:schemaLocation="http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-4.3.xsd
+		http://www.springframework.org/schema/integration/feed http://www.springframework.org/schema/integration/feed/spring-integration-feed.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file-4.3.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-4.3.xsd">
+
+    <jms:message-driven-channel-adapter
+        id="visitQueueAdapter" container="jmsContainer" />
+
+    <int:json-to-object-transformer id="xformToVisit"
+        input-channel="visitQueueAdapter" output-channel="visitObject" type="com.example.demo.domain.Visit" />
+
+    <int:channel id="visitObject" />
+
+    <int:transformer id="populateVisit"
+        input-channel="visitObject" output-channel="populatedVisit" ref="visitTransformer"
+        method="findVisit" />
+
+    <int:channel id="populatedVisit" />
+
+    <int:router id="visitTypeRouter" input-channel="populatedVisit"
+        expression="payload.visitType">
+        <int:mapping value="NoShow" channel="noShowOrCancellationChannel" />
+        <int:mapping value="Cancellation" channel="noShowOrCancellationChannel" />
+        <int:mapping value="SubsequentVisit" channel="realVisitChannel" />
+    </int:router>
+
+    <int:channel id="realVisitChannel" />
+    <int:channel id="noShowOrCancellationChannel" />
+
+    <int:transformer id="xformToInvoice" input-channel="realVisitChannel"
+        expression="payload.patientName + ' stopped in for a  ' + payload.visitType + '#{systemProperties['line.separator']}'"
+        output-channel="invoiceChannel" />
+
+    <file:outbound-channel-adapter id="invoiceChannel"
+        mode="APPEND" charset="UTF-8" directory="/tmp/si"
+        filename-generator-expression="'${feed.file.name:RealVisit}'" />
+
+    <int:transformer id="xformToFollowUp" input-channel="noShowOrCancellationChannel"
+        expression="payload.patientName + ' was a  ' + payload.visitType + '#{systemProperties['line.separator']}'"
+        output-channel="followUpChannel" />
+
+    <file:outbound-channel-adapter id="followUpChannel"
+        mode="APPEND" charset="UTF-8" directory="/tmp/si"
+        filename-generator-expression="'${feed.file.name:NoShowOrCancellation}'" />
+
+</beans>
